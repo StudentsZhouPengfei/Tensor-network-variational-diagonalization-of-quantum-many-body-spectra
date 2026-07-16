@@ -8,6 +8,7 @@ __pycache__/
 build/
 dist/
 results/
+tmp/
 *.pt
 *.pth
 *.log

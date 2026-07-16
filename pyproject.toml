@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tnvd"
-version = "0.1.0"
+version = "0.2.0"
 description = "Tensor-network variational diagonalization of quantum many-body spectra"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -19,7 +19,7 @@ dependencies = [
 dev = ["pytest>=7.4", "ruff>=0.5"]
 
 [project.scripts]
-tnvd = "tnvd.cli:main"
+tnvd = "tnvd.quickstart:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -30,4 +30,10 @@ addopts = "-q"
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py39"
+extend-exclude = [
+  "src/tnvd/class_evolve_TNO_cut_dims.py",
+  "src/tnvd/config.py",
+  "src/tnvd/run_automation.py",
+  "src/tnvd/tn_utils.py",
+]

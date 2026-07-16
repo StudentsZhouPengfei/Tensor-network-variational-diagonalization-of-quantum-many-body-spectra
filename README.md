@@ -15,7 +15,7 @@
 
 Tensor-network variational diagonalization (TNVD) asks when a complete many-body spectrum can be accessed without enumerating every eigenpair. It learns two coupled objects: a **spectrum matrix product state (MPS)** that stores eigenenergies in a variational binary label space, and a **finite-depth unitary circuit** that maps those labels to approximate eigenstates.
 
-> **Current release:** a tested, self-contained Ising reference implementation of the TNVD contractions and paper loss. It is designed for learning, verification, and extension. Full manuscript figure reproduction is a separate, not-yet-bundled layer; the distinction is documented below.
+> **Current release:** a minimally modified, tested packaging of the original TNVD research-code path. The public core retains the working evolution, robust complex-SVD, truncation, layer-growth, alternating-optimization, warm-start, and checkpoint machinery. The only scientific change inside that core is the manuscript loss. MPO generation/loading and the small quickstart are thin outer adapters.
 
 ## Quick start
 
@@ -31,7 +31,7 @@ python -m pip install -e .
 tnvd --quickstart
 ```
 
-The five-step CPU quickstart generates its Ising MPO in memory, runs the complete differentiable path, and writes a checkpoint, full environment metadata, loss history, and convergence plot to `results/quickstart/`.
+The five-epoch-per-layer CPU quickstart generates its Ising MPO in memory and injects a small configuration into the **original automation engine**. It writes the original per-layer checkpoint files, environment metadata, log, and convergence curves to `results/quickstart/`.
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -86,7 +86,21 @@ TNVD therefore turns full-spectrum access into a test of learnable tensor struct
 | **Matched Ising–XXZ comparison** | $N=14$, $N_L=10$, $\chi_a=16$, $\chi_t=48$; similar Poisson–GOE-like–localized crossovers but different TNVD errors | Spectral chaos or level repulsion alone does not determine TNVD difficulty |
 | **Finite-rank bottleneck** | At $\chi_s=8$, XXZ discarded weight is about one order larger; at $\chi_s=16$, several orders larger. Fitted ground-state tail exponents: $\alpha_{\rm XXZ}\simeq0.893$, $\alpha_{\rm Ising}\simeq1.735$ | Slower Schmidt decay explains why XXZ is harder at matched tensor resources |
 
-These are manuscript-level results, not outputs promised by the five-step quickstart.
+These are manuscript-level results, not outputs promised by the small quickstart.
+
+### From exact validation to large-spectrum sampling
+
+![Density of states reconstructed from the spectrum MPS](docs/assets/dos-sampling.png)
+
+**Main-text DOS benchmark—density of states without full enumeration.** At $N=16$ (left), histograms sampled from the learned spectrum MPS agree with exact-diagonalization curves for three transverse fields. At $N=100$ (right), the same representation provides access to a spectrum containing $2^{100}$ levels through label sampling rather than explicit construction. The displayed large-system histogram is a statistical estimate of the density of states, not a listing of every eigenvalue.
+
+### The essential label-organization control
+
+![Virtual entanglement of random-permuted ED, sorted ED, and TNVD spectrum states](docs/assets/spectrum-label-control.png)
+
+**Supplementary control—same energies, different binary organization.** The figure uses $N=16$, $N_L=10$, and $h_x=0.5$. The blue curve randomly permutes the binary labels of the same exact ED energies; it preserves every energy amplitude and the density of states, but produces a large middle-cut virtual entropy. Sorted ED (orange) is an exact low-entanglement reference under explicit energy ordering. TNVD (green) is **not sorted**: it realizes a low-entanglement approximate spectrum in the label space learned jointly with the circuit. Panel (b) resolves the low-entropy curves.
+
+This control directly answers the random-spectrum concern: the energy distribution alone is not what makes the spectrum MPS compact. Label organization is an essential resource. It does not claim that every exact many-body spectrum necessarily admits a compact TNVD labeling.
 
 ### Questions raised during peer review
 
@@ -139,7 +153,7 @@ $$
 +\mathrm{Tr}(\widetilde H^\dagger\widetilde H).
 $$
 
-The optimized quantity is `paper_loss = log2(raw_residual_squared) - N`. It is **not** the square root of the Hilbert–Schmidt residual. Because this global operator residual traces over the full Hilbert space, it does not privilege a selected energy window.
+The optimized quantity is `log2(residual_squared) - N`. It is **not** the square root of the Hilbert–Schmidt residual used by the older experiment-directory name. Because this global operator residual traces over the full Hilbert space, it does not privilege a selected energy window.
 
 ## Code guide
 
@@ -153,13 +167,11 @@ tnvd \
   --spectrum-bond 8 \
   --mpo-cutoff 16 \
   --epochs 200 \
-  --learning-rate 2e-3 \
-  --device auto \
   --seed 7 \
   --output results/n8
 ```
 
-`config.json` records the resolved parameters, random seed, invocation, Python/PyTorch versions, platform, and CUDA version.
+`quickstart_config.json` records the overlaid configuration, source MPO, random seed, invocation, Python/PyTorch versions, platform, and CUDA version. For paper-scale runs, edit the preserved [`config.py`](src/tnvd/config.py) and run `python -m tnvd.run_automation`; this retains the original warm-start and per-layer checkpoint workflow.
 
 ### Use an existing MPO
 
@@ -184,33 +196,34 @@ The loader validates site count, spin-$1/2$ physical dimensions, open boundaries
 
 ```text
 src/tnvd/
-├── cli.py          command-line interface and quickstart
-├── evolution.py    differentiable U†HU evolution and MPO truncation
-├── loss.py         Hilbert–Schmidt contractions and paper loss
-├── models.py       Ising MPO, dense reference, external-MPO loader
-├── tensors.py      spectrum MPS and latent-to-unitary projection
-└── train.py        optimization, provenance, plots, checkpoints
+├── class_evolve_TNO_cut_dims.py  original evolution/SVD/truncation engine
+├── tn_utils.py                   original tensors, contractions, warm starts
+├── run_automation.py             original layer-growth and optimization loop
+├── config.py                     preserved paper-scale configuration example
+├── mpo_factory.py                new generated/existing-MPO adapter
+└── quickstart.py                 new small config overlay; calls original engine
 ```
 
-The contraction core is model-independent. New Hamiltonians should provide an MPO in the documented convention rather than duplicate the optimizer in another parameter-specific directory. See [the architecture guide](docs/ARCHITECTURE.md) and [maintainer/Codex guide](AGENTS.md).
+This layout follows a **stable core + thin adapters** rule. New Hamiltonians should connect through an MPO or configuration rather than replace the working tensor kernels. The exact core provenance and minimal public diff are documented in [ORIGINAL_CORE.md](docs/ORIGINAL_CORE.md). See also the [architecture guide](docs/ARCHITECTURE.md) and [maintainer/Codex guide](AGENTS.md).
 
 ## Reproducibility contract
 
 | Level | What this repository currently provides |
 |---|---|
 | **Install** | Standard `pyproject.toml`, Python 3.9/3.11 CI, Apache-2.0 license |
-| **Verify** | Dense/MPO equality, unitary projection, $U^\dagger H U$, paper-loss, external-MPO, and end-to-end tests |
-| **Run** | Deterministic self-contained Ising quickstart with provenance and checkpoints |
-| **Extend** | Modular model boundary and validated external-MPO interface |
+| **Verify** | Dense/MPO equality, manuscript-loss, external-MPO, and original-engine end-to-end tests |
+| **Run** | Deterministic self-contained Ising quickstart through the research execution path |
+| **Reuse existing data** | Original per-layer checkpoint names, warm-start structure, and MPO tensor convention |
+| **Extend** | Thin configuration and validated MPO adapters; Codex guidance that protects the core |
 | **Reproduce all manuscript figures** | Not yet bundled: requires paper-scale presets, random-field/XXZ workflows, training budgets or checkpoints, and analysis scripts |
 
 For scientific use, verify a small system against exact diagonalization before scaling. Increase $N$, $N_L$, $\chi_a$, and $\chi_t$ independently and report all three tensor resources. A single fixed-resource run is not a convergence study.
 
 ### Numerical notes
 
-- The logarithm receives a machine-scale positive clamp; the unclamped residual is saved.
-- Complex SVDs receive a tiny perturbation near singular-value degeneracies.
-- The current release jointly optimizes all tensors. Layer-wise warm starts, alternating optimization, exact resume, built-in XXZ presets, and direct spectrum-MPS sampling remain planned extensions.
+- The logarithm receives a machine-scale positive clamp before evaluation.
+- The original robust complex SVD, gauge-gradient hooks, singularity escape, alternating optimization, layer growth, and warm-start assembly are retained.
+- Built-in XXZ presets, direct spectrum-MPS sampling, and figure-by-figure manuscript workflows remain future packaging work; existing research MPOs can already enter through `--mpo-file`.
 - Small tests establish implementation consistency, not asymptotic convergence for arbitrary Hamiltonians.
 
 ## Scientific context

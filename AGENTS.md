@@ -10,6 +10,7 @@ This repository publishes a minimally modified copy of the working TNVD research
 - Spectrum-MPS index `r_n` is a learned binary label, not a sorted-energy index.
 - Claims remain conditional on fixed resources and joint compressibility.
 - Do not add manuscript sources, private paths, or large checkpoints.
+- Preserve third-party author headers and `THIRD_PARTY_NOTICES.md`; do not treat vendored AutoMPO files as Apache-2.0 TNVD originals.
 
 ## Preferred extension pattern
 
@@ -18,5 +19,8 @@ This repository publishes a minimally modified copy of the working TNVD research
 3. Reuse `run_automation.main()` and the original tensor kernels.
 4. Add a small exact test at the MPO boundary and an end-to-end smoke test.
 5. Document any unavoidable core change in `docs/ORIGINAL_CORE.md`.
+
+Reference ED and analysis work belongs in `exact_diagonalization.py`, `tools/`,
+`analysis/`, or `data/`, not in the original training engine.
 
 Do not replace the research engine with a newly designed abstraction merely to make the layout look more conventional. Read `docs/ARCHITECTURE.md` and `docs/ORIGINAL_CORE.md` before editing.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tnvd"
-version = "0.2.0"
+version = "0.3.0"
 description = "Tensor-network variational diagonalization of quantum many-body spectra"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -24,6 +24,9 @@ tnvd = "tnvd.quickstart:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"tnvd._vendor.autompo" = ["NOTICE.md"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
@@ -34,6 +37,7 @@ target-version = "py39"
 extend-exclude = [
   "src/tnvd/class_evolve_TNO_cut_dims.py",
   "src/tnvd/config.py",
+  "src/tnvd/_vendor/autompo",
   "src/tnvd/run_automation.py",
   "src/tnvd/tn_utils.py",
 ]

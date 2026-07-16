@@ -28,7 +28,15 @@ original class_evolve_TNO_cut_dims.py
 - `run_automation.py`: original layer-growth, alternating optimization, scheduler, checkpoint, and recovery loop. Only package imports are changed.
 - `config.py`: preserved paper-scale Ising configuration example.
 - `mpo_factory.py`: new boundary adapter for a generated Ising MPO or an existing trusted MPO.
+- `autompo_models.py`: attributed AutoMPO adapters for generated TFIM and random-field XXZ MPOs.
+- `_vendor/autompo/`: the four-file finite-state-automaton core; provenance and rights are documented in `THIRD_PARTY_NOTICES.md`.
+- `exact_diagonalization.py`: small-system TFIM and fixed-magnetization XXZ references.
+- `spectrum_analysis.py`: installable pure functions shared by spectrum-label analysis and tests.
 - `quickstart.py`: new small configuration overlay that invokes the original engine.
+
+Supporting commands and manuscript tables live outside the package in `tools/`,
+`analysis/`, and `data/`. They validate or interpret the stable core but do not
+participate in the training execution path.
 
 ## Why this is reproducible
 

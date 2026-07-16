@@ -1,0 +1,1 @@
+"""Lightweight manuscript-analysis helpers."""

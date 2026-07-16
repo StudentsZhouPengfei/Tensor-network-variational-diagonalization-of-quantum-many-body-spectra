@@ -9,7 +9,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/License-Apache--2.0-2E8B57)](LICENSE)
 
-**[Quick start](#quick-start)** · **[Paper guide](#paper-guide)** · **[Code guide](#code-guide)** · **[Reproducibility](#reproducibility-contract)** · **[Citation](#citation)**
+**[Quick start](#quick-start)** · **[Paper guide](#paper-guide)** · **[Code guide](#code-guide)** · **[Reference tools](#reference-tools-and-data)** · **[Reproducibility](#reproducibility-contract)** · **[Citation](#citation)**
 
 </div>
 
@@ -192,6 +192,23 @@ The file must contain a list of rank-4 PyTorch tensors with index order
 
 The loader validates site count, spin-$1/2$ physical dimensions, open boundaries, and neighbouring virtual bonds. Load `.pt`/`.pth` files only from trusted sources because PyTorch checkpoints may contain pickled objects.
 
+### Generate an XXZ MPO with AutoMPO
+
+```python
+from tnvd.autompo_models import autompo_random_field_xxz
+from tnvd.mpo_factory import save_mpo
+
+fields = [0.2, -0.1, 0.05, -0.15, 0.08, -0.12]
+mpo = autompo_random_field_xxz(6, longitudinal_fields=fields)
+save_mpo(mpo, "random_field_xxz_n6.pth")
+```
+
+The lightweight finite-state-automaton core is vendored from
+[Hao-Kai Zhang's AutoMPO](https://github.com/Haokai-Zhang/AutoMPO) and converts
+its output to the TNVD tensor convention. The exact upstream commit, supplied
+operator-pool extension, and licensing status are recorded in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ### Architecture
 
 ```text
@@ -201,21 +218,46 @@ src/tnvd/
 ├── run_automation.py             original layer-growth and optimization loop
 ├── config.py                     preserved paper-scale configuration example
 ├── mpo_factory.py                new generated/existing-MPO adapter
+├── autompo_models.py             FSA-based TFIM/XXZ MPO adapters
+├── exact_diagonalization.py      small-system exact references
+├── _vendor/autompo/              lightweight attributed AutoMPO core
 └── quickstart.py                 new small config overlay; calls original engine
 ```
 
 This layout follows a **stable core + thin adapters** rule. New Hamiltonians should connect through an MPO or configuration rather than replace the working tensor kernels. The exact core provenance and minimal public diff are documented in [ORIGINAL_CORE.md](docs/ORIGINAL_CORE.md). See also the [architecture guide](docs/ARCHITECTURE.md) and [maintainer/Codex guide](AGENTS.md).
+
+## Reference tools and data
+
+The repository now includes small-system references distilled from the original
+ED and analysis scripts:
+
+```bash
+# Full TFIM spectrum
+python tools/exact_diagonalization.py tfim --spins 8 --field-x 0.5
+
+# Fixed-magnetization XXZ block and central-50% adjacent-gap ratio
+python tools/exact_diagonalization.py xxz --spins 10 --sector 5
+
+# Replot the bundled Schmidt-resource tables
+python analysis/plot_schmidt_resources.py --output results/schmidt-resources.png
+```
+
+[`data/`](data/README.md) contains human-readable tables for the matched
+Ising–XXZ benchmark, discarded Schmidt weights, and ground-state Schmidt tails.
+[`analysis/spectrum_label_control.py`](analysis/spectrum_label_control.py)
+recomputes the random-permuted/sorted-ED virtual-entanglement control from energy
+vectors. Large eigenvector matrices and training checkpoints remain external.
 
 ## Reproducibility contract
 
 | Level | What this repository currently provides |
 |---|---|
 | **Install** | Standard `pyproject.toml`, Python 3.9/3.11 CI, Apache-2.0 license |
-| **Verify** | Dense/MPO equality, manuscript-loss, external-MPO, and original-engine end-to-end tests |
+| **Verify** | Dense/MPO equality, direct/AutoMPO agreement, XXZ sector ED, manuscript-loss, external-MPO, and original-engine end-to-end tests |
 | **Run** | Deterministic self-contained Ising quickstart through the research execution path |
 | **Reuse existing data** | Original per-layer checkpoint names, warm-start structure, and MPO tensor convention |
 | **Extend** | Thin configuration and validated MPO adapters; Codex guidance that protects the core |
-| **Reproduce all manuscript figures** | Not yet bundled: requires paper-scale presets, random-field/XXZ workflows, training budgets or checkpoints, and analysis scripts |
+| **Reproduce manuscript analyses** | Selected ED, label-control, Schmidt-resource scripts and lightweight tables are bundled; full figure-by-figure reproduction still requires paper-scale presets and checkpoints |
 
 For scientific use, verify a small system against exact diagonalization before scaling. Increase $N$, $N_L$, $\chi_a$, and $\chi_t$ independently and report all three tensor resources. A single fixed-resource run is not a convergence study.
 
@@ -223,7 +265,7 @@ For scientific use, verify a small system against exact diagonalization before s
 
 - The logarithm receives a machine-scale positive clamp before evaluation.
 - The original robust complex SVD, gauge-gradient hooks, singularity escape, alternating optimization, layer growth, and warm-start assembly are retained.
-- Built-in XXZ presets, direct spectrum-MPS sampling, and figure-by-figure manuscript workflows remain future packaging work; existing research MPOs can already enter through `--mpo-file`.
+- A programmatic XXZ AutoMPO adapter is included; CLI paper presets, direct spectrum-MPS sampling, and complete figure-by-figure workflows remain future packaging work.
 - Small tests establish implementation consistency, not asymptotic convergence for arbitrary Hamiltonians.
 
 ## Scientific context
@@ -259,4 +301,6 @@ Bug reports and reproducibility questions are welcome through GitHub Issues. Con
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Original TNVD code is released under Apache License 2.0; see [LICENSE](LICENSE).
+Vendored third-party material is documented separately in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

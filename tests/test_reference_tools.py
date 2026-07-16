@@ -1,10 +1,10 @@
 import numpy as np
 import torch
 
-from analysis.spectrum_label_control import virtual_entropy_curve
 from tnvd.autompo_models import autompo_random_field_xxz, autompo_tfim
 from tnvd.exact_diagonalization import adjacent_gap_ratio, xxz_sector_hamiltonian
 from tnvd.mpo_factory import mpo_to_dense, transverse_field_ising_mpo
+from tnvd.spectrum_analysis import virtual_entropy_curve
 
 
 def test_vendored_autompo_matches_direct_tfim_builder() -> None:

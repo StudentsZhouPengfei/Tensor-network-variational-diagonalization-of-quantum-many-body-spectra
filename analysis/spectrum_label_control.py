@@ -9,6 +9,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from tnvd.spectrum_analysis import virtual_entropy_curve
+
 
 def load_vector(path: Path) -> np.ndarray:
     if path.suffix == ".npy":
@@ -22,20 +24,6 @@ def load_vector(path: Path) -> np.ndarray:
         loaded = torch.load(path, map_location="cpu")
         values = loaded.detach().numpy() if isinstance(loaded, torch.Tensor) else np.asarray(loaded)
     return np.asarray(values, dtype=np.float64).reshape(-1)
-
-
-def virtual_entropy_curve(values: np.ndarray) -> np.ndarray:
-    num_spins = int(np.log2(values.size))
-    if 2**num_spins != values.size:
-        raise ValueError("energy-vector length must be a power of two")
-    normalized = values / np.linalg.norm(values)
-    entropies = []
-    for cut in range(1, num_spins):
-        singular_values = np.linalg.svd(normalized.reshape(2**cut, -1), compute_uv=False)
-        probabilities = singular_values**2
-        probabilities = probabilities[probabilities > 0]
-        entropies.append(float(-np.sum(probabilities * np.log2(probabilities))))
-    return np.asarray(entropies)
 
 
 def main():

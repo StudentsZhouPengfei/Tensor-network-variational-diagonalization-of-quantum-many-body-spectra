@@ -31,6 +31,7 @@ original class_evolve_TNO_cut_dims.py
 - `autompo_models.py`: attributed AutoMPO adapters for generated TFIM and random-field XXZ MPOs.
 - `_vendor/autompo/`: the four-file finite-state-automaton core; provenance and rights are documented in `THIRD_PARTY_NOTICES.md`.
 - `exact_diagonalization.py`: small-system TFIM and fixed-magnetization XXZ references.
+- `spectrum_analysis.py`: installable pure functions shared by spectrum-label analysis and tests.
 - `quickstart.py`: new small configuration overlay that invokes the original engine.
 
 Supporting commands and manuscript tables live outside the package in `tools/`,

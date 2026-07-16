@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="420" viewBox="0 0 1120 420" role="img" aria-labelledby="title desc">
+  <title id="title">TNVD method overview</title>
+  <desc id="desc">A spectrum MPS and a finite-depth circuit are jointly optimized with a logarithmic Hilbert-Schmidt loss, enabling full-spectrum reconstruction and sampling when both objects are compressible.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f9ff"/>
+      <stop offset="1" stop-color="#eef8f6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#17324d" flood-opacity="0.13"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#52657a"/>
+    </marker>
+    <style>
+      .heading { font: 700 25px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #16324f; }
+      .label { font: 700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #16324f; }
+      .body { font: 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #43566b; }
+      .small { font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #52657a; }
+    </style>
+  </defs>
+  <rect width="1120" height="420" rx="24" fill="url(#background)"/>
+  <text x="560" y="43" text-anchor="middle" class="heading">Tensor-network variational diagonalization</text>
+
+  <rect x="45" y="82" width="295" height="125" rx="18" fill="#fff" stroke="#7d9fe5" filter="url(#shadow)"/>
+  <text x="192" y="115" text-anchor="middle" class="label">Spectrum MPS</text>
+  <text x="192" y="145" text-anchor="middle" class="body">E(r₁,…,rₙ) in a learned label space</text>
+  <circle cx="105" cy="176" r="13" fill="#f2c14e"/><circle cx="150" cy="176" r="13" fill="#f2c14e"/>
+  <circle cx="195" cy="176" r="13" fill="#f2c14e"/><circle cx="240" cy="176" r="13" fill="#f2c14e"/>
+  <circle cx="285" cy="176" r="13" fill="#f2c14e"/>
+  <path d="M118 176H137 M163 176H182 M208 176H227 M253 176H272" stroke="#9b7417" stroke-width="5"/>
+
+  <rect x="45" y="246" width="295" height="125" rx="18" fill="#fff" stroke="#64b7a6" filter="url(#shadow)"/>
+  <text x="192" y="279" text-anchor="middle" class="label">Finite-depth circuit U</text>
+  <text x="192" y="309" text-anchor="middle" class="body">binary labels → approximate eigenstates</text>
+  <rect x="85" y="330" width="46" height="25" rx="6" fill="#63b3a3"/>
+  <rect x="143" y="330" width="46" height="25" rx="6" fill="#4c93d6"/>
+  <rect x="201" y="330" width="46" height="25" rx="6" fill="#63b3a3"/>
+  <rect x="259" y="330" width="46" height="25" rx="6" fill="#4c93d6"/>
+
+  <path d="M340 145H448" stroke="#52657a" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M340 309H448" stroke="#52657a" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="460" y="130" width="285" height="195" rx="22" fill="#173f5f" filter="url(#shadow)"/>
+  <text x="602" y="174" text-anchor="middle" style="font:700 20px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#fff">Joint optimization</text>
+  <text x="602" y="220" text-anchor="middle" style="font:18px 'Times New Roman',serif;fill:#fff">F = log₂ ‖H − H̃‖²<tspan baseline-shift="sub" font-size="13">HS</tspan> − N</text>
+  <line x1="500" y1="246" x2="705" y2="246" stroke="#8fb8d6"/>
+  <text x="602" y="276" text-anchor="middle" style="font:15px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#dceaf4">global operator residual</text>
+  <text x="602" y="299" text-anchor="middle" style="font:15px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#dceaf4">differentiable MPO contractions</text>
+
+  <path d="M745 227H825" stroke="#52657a" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="837" y="93" width="238" height="268" rx="20" fill="#fff" stroke="#8a9bad" filter="url(#shadow)"/>
+  <text x="956" y="129" text-anchor="middle" class="label">When both are compact</text>
+  <circle cx="875" cy="172" r="7" fill="#4c93d6"/>
+  <text x="895" y="178" class="body">full-spectrum reconstruction</text>
+  <circle cx="875" cy="217" r="7" fill="#4c93d6"/>
+  <text x="895" y="223" class="body">spectral-edge + center access</text>
+  <circle cx="875" cy="262" r="7" fill="#4c93d6"/>
+  <text x="895" y="268" class="body">density-of-states sampling</text>
+  <circle cx="875" cy="307" r="7" fill="#4c93d6"/>
+  <text x="895" y="313" class="body">resource diagnostics</text>
+
+  <text x="560" y="401" text-anchor="middle" class="small">Fixed-resource polynomial contractions require a low-entanglement spectrum tensor and a truncatable diagonalizing transformation.</text>
+</svg>

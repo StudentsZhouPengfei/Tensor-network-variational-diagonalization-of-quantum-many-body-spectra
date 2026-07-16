@@ -1,1 +1,249 @@
-# Tensor-network-variational-diagonalization-of-quantum-many-body-spectra
+<div align="center">
+
+# Tensor-Network Variational Diagonalization
+
+### A joint tensor-network representation of quantum many-body eigenenergies and eigenstates
+
+[![CI](https://github.com/StudentsZhouPengfei/Tensor-network-variational-diagonalization-of-quantum-many-body-spectra/actions/workflows/ci.yml/badge.svg)](https://github.com/StudentsZhouPengfei/Tensor-network-variational-diagonalization-of-quantum-many-body-spectra/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-2E8B57)](LICENSE)
+
+**[Quick start](#quick-start)** · **[Paper guide](#paper-guide)** · **[Code guide](#code-guide)** · **[Reproducibility](#reproducibility-contract)** · **[Citation](#citation)**
+
+</div>
+
+Tensor-network variational diagonalization (TNVD) asks when a complete many-body spectrum can be accessed without enumerating every eigenpair. It learns two coupled objects: a **spectrum matrix product state (MPS)** that stores eigenenergies in a variational binary label space, and a **finite-depth unitary circuit** that maps those labels to approximate eigenstates.
+
+> **Current release:** a tested, self-contained Ising reference implementation of the TNVD contractions and paper loss. It is designed for learning, verification, and extension. Full manuscript figure reproduction is a separate, not-yet-bundled layer; the distinction is documented below.
+
+## Quick start
+
+```bash
+git clone https://github.com/StudentsZhouPengfei/Tensor-network-variational-diagonalization-of-quantum-many-body-spectra.git
+cd Tensor-network-variational-diagonalization-of-quantum-many-body-spectra
+
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+
+tnvd --quickstart
+```
+
+The five-step CPU quickstart generates its Ising MPO in memory, runs the complete differentiable path, and writes a checkpoint, full environment metadata, loss history, and convergence plot to `results/quickstart/`.
+
+```bash
+python -m pip install -e ".[dev]"
+pytest                           # physics and end-to-end tests
+ruff check .                    # code-quality check
+```
+
+## The idea in one picture
+
+![TNVD method overview](docs/assets/tnvd-overview.svg)
+
+For a binary label $r=(r_1,\ldots,r_N)$, TNVD represents the eigenenergy tensor as
+
+$$
+E_{r_1\ldots r_N}=\sum_{a_2\ldots a_N}
+A^{[1]}_{r_1a_1a_2}\cdots A^{[N]}_{r_Na_Na_{N+1}},
+\qquad a_1=a_{N+1}=1,
+$$
+
+and associates it with $|\alpha\rangle=U|r_\alpha\rangle$. Joint optimization learns the labels instead of imposing a sorted-energy ordering. The three controlling resources are:
+
+| Resource | Meaning | Code/CLI |
+|---|---|---|
+| $\chi_a$ | spectrum-MPS storage and virtual entanglement | `--spectrum-bond` |
+| $N_L$ | circuit expressiveness | `--layers` |
+| $\chi_t$ | Schmidt truncation of the circuit-evolved MPO | `--mpo-cutoff` |
+
+At fixed $\chi_a$, $N_L$, and $\chi_t$, the contractions are polynomial in $N$. This is a conditional fixed-resource statement—not a claim that arbitrary spectra can be exactly compressed.
+
+## Paper guide
+
+### What is new?
+
+Earlier unitary tensor-network approaches primarily represent selected eigenstates, approximate eigenbases, conserved structures, or diagonalizing transformations. TNVD adds an **explicit MPS for the exponentially long energy tensor** and optimizes it together with the circuit in one learned label space. This enables direct spectrum-MPS sampling after training.
+
+The scientific criterion is **joint compressibility**:
+
+- the learned energy tensor must have sufficiently low virtual entanglement;
+- the corresponding diagonalizing transformation must remain truncatable at finite Schmidt rank.
+
+TNVD therefore turns full-spectrum access into a test of learnable tensor structure rather than assuming every local Hamiltonian has a compact full-spectrum representation.
+
+### Main results at a glance
+
+| Manuscript result | Representative data | Physical conclusion |
+|---|---|---|
+| **Full-spectrum Ising reconstruction** | $6\le N\le100$; ED comparison for $N\le16$; displayed edge-to-center errors are $O(10^{-2})$ or below | One TNVD representation covers both the spectral edge and dense center instead of targeting a single window |
+| **Spectrum-MPS resource scaling** | At the studied circuit resources, the loss saturates above roughly $\chi_a\simeq16$ | The Ising energy tensor admits a compact MPS representation in the learned labels for this benchmark |
+| **Density of states beyond enumeration** | An MPS encodes $2^{100}$ levels; $10^6$ labels are sampled with per-sample cost $O(N\chi_a^2)$ | Global spectral statistics can be estimated without forming or sorting the complete spectrum |
+| **Quantitative DOS validation** | At $N=16$, ED/TNVD Gaussian widths are $(1.069/1.068)$, $(1.426/1.425)$, and $(1.910/1.908)$ for $h_x=0.2,0.5,0.8$ | Spectrum-MPS sampling agrees with an exact reference where enumeration remains possible |
+| **Random-label control** | A random permutation of the same exact energies produces a large middle-cut spectrum-state entropy | Energy amplitudes alone are insufficient; label organization is an essential compression resource |
+| **Matched Ising–XXZ comparison** | $N=14$, $N_L=10$, $\chi_a=16$, $\chi_t=48$; similar Poisson–GOE-like–localized crossovers but different TNVD errors | Spectral chaos or level repulsion alone does not determine TNVD difficulty |
+| **Finite-rank bottleneck** | At $\chi_s=8$, XXZ discarded weight is about one order larger; at $\chi_s=16$, several orders larger. Fitted ground-state tail exponents: $\alpha_{\rm XXZ}\simeq0.893$, $\alpha_{\rm Ising}\simeq1.735$ | Slower Schmidt decay explains why XXZ is harder at matched tensor resources |
+
+These are manuscript-level results, not outputs promised by the five-step quickstart.
+
+### Questions raised during peer review
+
+<details>
+<summary><strong>Can an arbitrary random spectrum be compressed as an MPS?</strong></summary>
+
+No. A generic list of $2^N$ random values generally requires exponentially growing bond dimension. The random-label control preserves the exact energy amplitudes while scrambling their binary assignment; its much larger virtual entropy shows why label organization is necessary. TNVD tests for a compact learned organization—it does not assume one always exists.
+
+</details>
+
+<details>
+<summary><strong>Is the transverse-field Ising model too easy to establish the method?</strong></summary>
+
+The clean transverse-field chain is deliberately used as an exactly solvable validation reference. The interacting stress test is the random-field XXZ chain. In the manuscript's disorder comparison, a nonzero longitudinal random field also generically breaks the clean Ising free-fermion integrability, so the comparison is not simply “solvable Ising versus interacting XXZ.”
+
+</details>
+
+<details>
+<summary><strong>Does level repulsion determine spectrum-MPS complexity?</strong></summary>
+
+Not by itself. Level statistics probe correlations after energy ordering, whereas spectrum-MPS complexity probes bipartite correlations in a variational binary label space. Similar level-statistics crossovers coexist with sharply different TNVD errors in Ising and XXZ. For XXZ, the spacing ratio is evaluated in the zero-magnetization sector using its central $50\%$, avoiding mixed-sector artifacts.
+
+</details>
+
+<details>
+<summary><strong>Are spectrum-state entanglement and eigenstate entanglement the same?</strong></summary>
+
+No. Spectrum-state virtual entanglement is defined along the binary energy-label chain and diagnoses the MPS resources needed to encode $E_r$. Eigenstate entanglement is a physical-space property of $|\alpha\rangle$. The manuscript uses them as distinct diagnostics.
+
+</details>
+
+<details>
+<summary><strong>Is TNVD intended for precision ground-state spectroscopy?</strong></summary>
+
+No. At the reported resources, TNVD is not a replacement for specialized ground-state or few-level solvers. Its target is a compressed full-spectrum representation and global spectral observables. Low-lying levels are shown to establish that the same representation covers the spectral edge and center, not to claim state-of-the-art low-energy precision.
+
+</details>
+
+## Paper loss
+
+The implementation optimizes the manuscript's logarithmic Hilbert–Schmidt objective:
+
+$$
+F=\log_2\left\|H-\widetilde H\right\|_{\mathrm{HS}}^2-N,
+$$
+
+$$
+\left\|H-\widetilde H\right\|_{\mathrm{HS}}^2
+=\mathrm{Tr}(H^\dagger H)-2\,\mathrm{Re}\,\mathrm{Tr}(H^\dagger\widetilde H)
++\mathrm{Tr}(\widetilde H^\dagger\widetilde H).
+$$
+
+The optimized quantity is `paper_loss = log2(raw_residual_squared) - N`. It is **not** the square root of the Hilbert–Schmidt residual. Because this global operator residual traces over the full Hilbert space, it does not privilege a selected energy window.
+
+## Code guide
+
+### Configurable run
+
+```bash
+tnvd \
+  --spins 8 \
+  --field-x 0.5 \
+  --layers 2 \
+  --spectrum-bond 8 \
+  --mpo-cutoff 16 \
+  --epochs 200 \
+  --learning-rate 2e-3 \
+  --device auto \
+  --seed 7 \
+  --output results/n8
+```
+
+`config.json` records the resolved parameters, random seed, invocation, Python/PyTorch versions, platform, and CUDA version.
+
+### Use an existing MPO
+
+```bash
+tnvd \
+  --mpo-file path/to/hamiltonian_mpo.pth \
+  --spins 14 \
+  --spectrum-bond 16 \
+  --mpo-cutoff 48 \
+  --output results/from_mpo
+```
+
+The file must contain a list of rank-4 PyTorch tensors with index order
+
+```text
+(left virtual bond, bra physical index, ket physical index, right virtual bond).
+```
+
+The loader validates site count, spin-$1/2$ physical dimensions, open boundaries, and neighbouring virtual bonds. Load `.pt`/`.pth` files only from trusted sources because PyTorch checkpoints may contain pickled objects.
+
+### Architecture
+
+```text
+src/tnvd/
+├── cli.py          command-line interface and quickstart
+├── evolution.py    differentiable U†HU evolution and MPO truncation
+├── loss.py         Hilbert–Schmidt contractions and paper loss
+├── models.py       Ising MPO, dense reference, external-MPO loader
+├── tensors.py      spectrum MPS and latent-to-unitary projection
+└── train.py        optimization, provenance, plots, checkpoints
+```
+
+The contraction core is model-independent. New Hamiltonians should provide an MPO in the documented convention rather than duplicate the optimizer in another parameter-specific directory. See [the architecture guide](docs/ARCHITECTURE.md) and [maintainer/Codex guide](AGENTS.md).
+
+## Reproducibility contract
+
+| Level | What this repository currently provides |
+|---|---|
+| **Install** | Standard `pyproject.toml`, Python 3.9/3.11 CI, Apache-2.0 license |
+| **Verify** | Dense/MPO equality, unitary projection, $U^\dagger H U$, paper-loss, external-MPO, and end-to-end tests |
+| **Run** | Deterministic self-contained Ising quickstart with provenance and checkpoints |
+| **Extend** | Modular model boundary and validated external-MPO interface |
+| **Reproduce all manuscript figures** | Not yet bundled: requires paper-scale presets, random-field/XXZ workflows, training budgets or checkpoints, and analysis scripts |
+
+For scientific use, verify a small system against exact diagonalization before scaling. Increase $N$, $N_L$, $\chi_a$, and $\chi_t$ independently and report all three tensor resources. A single fixed-resource run is not a convergence study.
+
+### Numerical notes
+
+- The logarithm receives a machine-scale positive clamp; the unclamped residual is saved.
+- Complex SVDs receive a tiny perturbation near singular-value degeneracies.
+- The current release jointly optimizes all tensors. Layer-wise warm starts, alternating optimization, exact resume, built-in XXZ presets, and direct spectrum-MPS sampling remain planned extensions.
+- Small tests establish implementation consistency, not asymptotic convergence for arbitrary Hamiltonians.
+
+## Scientific context
+
+TNVD builds on MPS/TEBD methods and unitary tensor-network descriptions of spectral structure. Directly relevant background includes:
+
+- F. Pollmann *et al.*, [Phys. Rev. B **94**, 041116 (2016)](https://doi.org/10.1103/PhysRevB.94.041116).
+- T. B. Wahl, A. Pal, and S. H. Simon, [Phys. Rev. X **7**, 021018 (2017)](https://doi.org/10.1103/PhysRevX.7.021018).
+- R. Haghshenas, [Phys. Rev. Research **3**, 023148 (2021)](https://doi.org/10.1103/PhysRevResearch.3.023148).
+- J. I. Cirac *et al.*, [Rev. Mod. Phys. **93**, 045003 (2021)](https://doi.org/10.1103/RevModPhys.93.045003).
+- P.-F. Zhou *et al.*, [Phys. Rev. Lett. **131**, 020403 (2023)](https://doi.org/10.1103/PhysRevLett.131.020403).
+
+These works provide context; this repository does not claim that tensor-network circuits for spectral problems originated with TNVD. The specific contribution here is the jointly optimized spectrum MPS, learned labels, and diagonalizing circuit.
+
+## Citation
+
+**Accompanying manuscript**
+
+> Peng-Fei Zhou, Shuang Qiao, An-Chun Ji, and Shi-Ju Ran, “Tensor-network variational diagonalization of quantum many-body spectra” (2026). Publication metadata will be added when publicly available.
+
+Until then, use [CITATION.cff](CITATION.cff) or:
+
+```bibtex
+@software{TNVDGitHub2026,
+  author = {Zhou, Peng-Fei and Qiao, Shuang and Ji, An-Chun and Ran, Shi-Ju},
+  title = {Tensor-network variational diagonalization of quantum many-body spectra},
+  year = {2026},
+  url = {https://github.com/StudentsZhouPengfei/Tensor-network-variational-diagonalization-of-quantum-many-body-spectra}
+}
+```
+
+Bug reports and reproducibility questions are welcome through GitHub Issues. Contributions should preserve the paper loss and tensor-index conventions and include a focused test.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).

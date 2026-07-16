@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the repository and the accompanying manuscript when its publication record becomes available."
+title: "Tensor-network variational diagonalization of quantum many-body spectra"
+type: software
+authors:
+  - family-names: Zhou
+    given-names: Peng-Fei
+  - family-names: Qiao
+    given-names: Shuang
+  - family-names: Ji
+    given-names: An-Chun
+  - family-names: Ran
+    given-names: Shi-Ju
+    email: sjran@cnu.edu.cn
+repository-code: "https://github.com/StudentsZhouPengfei/Tensor-network-variational-diagonalization-of-quantum-many-body-spectra"
+license: Apache-2.0
+version: 0.1.0
+date-released: 2026-07-16

@@ -1,21 +1,22 @@
 # Maintainer and Codex guide
 
-This repository is the standalone public TNVD implementation. Keep it self-contained: do not add manuscript sources, private data, absolute paths, or large experiment checkpoints.
+This repository publishes a minimally modified copy of the working TNVD research code. The original contraction/SVD/evolution path is the scientific reference. Engineering changes belong around that core, not inside it.
 
-## Scientific invariants
+## Non-negotiable invariants
 
-- The optimized objective is `F = log2(||H - H_tilde||_HS^2) - N`. Do not replace it with a norm or square-root distance.
-- MPO sites use `(left bond, bra, ket, right bond)`.
-- The circuit evolution consumed by the diagonal contraction is `U^dagger H U`.
-- Spectrum-MPS physical index `r_n` is a learned binary eigenstate label, not a promise of sorted energy order.
-- Claims must remain conditional on fixed tensor resources and compressibility; TNVD is not an exact diagonalizer for arbitrary Hamiltonians.
+- Preserve `class_evolve_TNO_cut_dims.py`, `run_automation.py`, and `tn_utils.py` unless a change is required by a demonstrated bug or the manuscript definition.
+- The public scientific change is the loss `F = log2(||H - H_tilde||_HS^2) - N`; never restore the square-root distance.
+- MPO sites use `(left bond, bra, ket, right bond)` and are validated at the adapter boundary.
+- Spectrum-MPS index `r_n` is a learned binary label, not a sorted-energy index.
+- Claims remain conditional on fixed resources and joint compressibility.
+- Do not add manuscript sources, private paths, or large checkpoints.
 
-## Change protocol
+## Preferred extension pattern
 
-1. Put model-specific MPO construction in `src/tnvd/models.py` or a new model module.
-2. Keep contractions in `loss.py` and circuit/MPO evolution in `evolution.py` model-agnostic.
-3. Add a small dense-reference test for every new Hamiltonian or tensor-index transformation.
-4. Run `pytest`, `python -m compileall -q src tests`, and `tnvd --quickstart` before committing.
-5. Never commit `results/`, `.pt`, or `.pth` files unless a small fixture is explicitly justified.
+1. Add a model through `mpo_factory.py` or load a trusted research MPO.
+2. Add a thin preset/wrapper that mutates a copy of `config`.
+3. Reuse `run_automation.main()` and the original tensor kernels.
+4. Add a small exact test at the MPO boundary and an end-to-end smoke test.
+5. Document any unavoidable core change in `docs/ORIGINAL_CORE.md`.
 
-Read `docs/ARCHITECTURE.md` before changing contraction order or checkpoint structure.
+Do not replace the research engine with a newly designed abstraction merely to make the layout look more conventional. Read `docs/ARCHITECTURE.md` and `docs/ORIGINAL_CORE.md` before editing.

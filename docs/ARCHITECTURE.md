@@ -1,47 +1,50 @@
-# TNVD architecture
+# TNVD release architecture
 
-## Data flow
+## Design rule
+
+The public package uses a **stable core + thin adapters** design. The stable core is copied from the working research runs. Packaging, MPO generation/loading, small presets, metadata, and tests are placed around it.
 
 ```text
-Hamiltonian parameters or --mpo-file
-                 |
-                 v
-        Hamiltonian MPO H
-                 |
-        circuit conjugation + SVD cutoff chi_t
-                 |
-                 v
-             U^dagger H U -----+
-                                |
-spectrum MPS E_r ---------------+--> HS residual squared --> log2(.) - N
+generated MPO or trusted .pth MPO
+               |
+       mpo_factory validation
+               |
+       quickstart config overlay
+               |
+               v
+      original run_automation.py
+               |
+   original tn_utils.py contractions
+               |
+original class_evolve_TNO_cut_dims.py
+               |
+ checkpoints + paper-loss curve + metadata
 ```
 
-The loss is evaluated without constructing a dense `2^N x 2^N` operator. Dense construction exists only in tests for small systems.
+## Files and ownership
 
-## Module boundaries
+- `class_evolve_TNO_cut_dims.py`: original differentiable MPO evolution, orthogonalization, robust complex SVD, and truncation machinery.
+- `tn_utils.py`: original tensor constructors, circuit evolution, warm starts, contractions, plotting, and loss entrypoint. Only package imports and the manuscript loss are changed.
+- `run_automation.py`: original layer-growth, alternating optimization, scheduler, checkpoint, and recovery loop. Only package imports are changed.
+- `config.py`: preserved paper-scale Ising configuration example.
+- `mpo_factory.py`: new boundary adapter for a generated Ising MPO or an existing trusted MPO.
+- `quickstart.py`: new small configuration overlay that invokes the original engine.
 
-- `models.py` owns Hamiltonian MPO creation/loading and small dense references.
-- `tensors.py` owns trainable spectrum-MPS tensors and latent-to-unitary projection.
-- `evolution.py` conjugates the MPO and applies the finite `chi_t` SVD cutoff.
-- `loss.py` owns tensor-network contractions and the paper loss definition.
-- `train.py` owns optimization, reproducibility metadata, checkpoints, and diagnostics.
-- `cli.py` translates user-facing arguments into a `TNVDConfig`.
+## Why this is reproducible
 
-## Checkpoint contract
+The code producing the smoke-test data follows the same execution path as the research runs: the same gate projection, MPO evolution, SVD truncation, spectrum-MPS contraction, alternating optimization, layer growth, and checkpoint format. The quickstart changes resource values, initialization mode, paths, and the number of epochs; it does not substitute another TNVD implementation.
 
-`checkpoint.pt` is a dictionary containing the resolved configuration, epoch, best paper loss, CPU spectrum-MPS tensors, and CPU circuit latent tensors. It deliberately stores latent parameters rather than optimizer internals so analysis does not depend on an optimizer version.
+## Checkpoints
 
-An external Hamiltonian checkpoint is a separate object: a list of rank-4 MPO tensors. The `--mpo-file` loader validates it before training.
+The original engine writes separate files per circuit depth:
 
-## High-value next refactors
+- `Physical_tensorsNL=<n>.pth`
+- `Eigen_MPSsNL=<n>.pth`
+- `Entanglement_layers_listNL=<n>.pth` for `n > 0`
+- `Minimize_Energy_NL_<n>.pdf`
 
-The current release focuses on a trustworthy minimal path. The following additions should be implemented only when needed and covered by tests:
+This format is intentionally retained so existing data and warm-start workflows remain compatible.
 
-1. layer-wise warm starts and optimizer-state resume;
-2. random-field XXZ as a second built-in model;
-3. direct spectrum-MPS sampling and exact-diagonalization comparison commands;
-4. configurable alternating optimization of spectrum and circuit tensors;
-5. richer truncation diagnostics, including discarded singular-value weight;
-6. reproduction presets kept as small configuration files, not duplicated source trees.
+## Extension order
 
-Avoid restoring the old experiment layout in which every parameter set contained another copy of the same Python files. One implementation plus explicit configurations is easier to reproduce and audit.
+Prefer, in order: a new configuration, a new MPO adapter, a new analysis script, and only then a core change. If a core change is unavoidable, isolate it, test it against a small exact contraction, and update `docs/ORIGINAL_CORE.md`.
